@@ -15,3 +15,12 @@ This a small part of my pet project that i always wanted to create. A personal p
 # What it do
 
 When you add a link to your game - node.js lauches Playwright to crawl google play page and get info about your game. It's stored in your browser local storage for the moment. Then you press "Add keywords" and fill modal window with keywords that you think you need. Then you press "Parse" and parser starts another session of crawling by each keyword and trying to find your game. If it's founded - place is recorded and displayed in table.
+
+# Trade-offs
+
+- Currently it's a DOM parsing, in feature i have a plan to switch to network response parsing
+- Playwright is usefull with its Android device emulation, but its heavy and slow
+
+# Not ready
+
+I still have a ton of work with UX and tsx components, layout overall is not finished.
