@@ -18,7 +18,7 @@ export function GamesDropdown() {
         <select
           value={activeGameId ?? ''}
           onChange={(event) => selectGame(event.target.value)}
-          className="appearance-none rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text-h outline-none focus-visible:ring-2 focus-visible:ring-accent cursor-pointer"
+          className="appearance-none rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text-h outline-none focus-visible:ring-2 focus-visible:ring-accent cursor-pointer w-3xs"
         >
           {games.map((tracking) => (
             <option key={tracking.game.id} value={tracking.game.id}>

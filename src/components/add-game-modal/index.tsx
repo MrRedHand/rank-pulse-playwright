@@ -20,6 +20,7 @@ export function AddGameModal({ isOpen, onClose }: AddGameModalProps) {
 
   const addGame = useTrackingStore((state) => state.addGame)
   const trackedGames = useTrackingStore((state) => state.trackedGames)
+  const activeGameId = useTrackingStore((state) => state.activeGameId)
 
   const { mutate, isPending, isError, reset } = useFetchGame()
 
@@ -69,9 +70,18 @@ export function AddGameModal({ isOpen, onClose }: AddGameModalProps) {
     handleClose()
   }
 
-  const isAlreadyTracked = parsedGame
-    ? Boolean(trackedGames[parsedGame.id])
-    : false
+  function getPreviewActionLabel(): string {
+    if (!parsedGame) {
+      return 'Add'
+    }
+    if (!trackedGames[parsedGame.id]) {
+      return 'Add'
+    }
+    if (activeGameId === parsedGame.id) {
+      return 'Update'
+    }
+    return 'Switch'
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -116,6 +126,7 @@ export function AddGameModal({ isOpen, onClose }: AddGameModalProps) {
             <p className="mb-2 text-xs text-muted">Game found</p>
             <div className="flex items-center gap-3">
               <img
+                key={`${parsedGame.id}`}
                 src={parsedGame.icon}
                 alt=""
                 className="h-12 w-12 shrink-0 rounded-lg object-cover"
@@ -130,7 +141,7 @@ export function AddGameModal({ isOpen, onClose }: AddGameModalProps) {
                 onClick={handleAddParsed}
                 className="shrink-0 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover"
               >
-                {isAlreadyTracked ? 'Switch' : 'Add'}
+                {getPreviewActionLabel()}
               </button>
             </div>
           </div>

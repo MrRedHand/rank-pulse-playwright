@@ -27,7 +27,7 @@ export function CountryDropdown() {
               setCountry(country)
             }
           }}
-          className="appearance-none rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text-h outline-none focus-visible:ring-2 focus-visible:ring-accent cursor-pointer"
+          className="appearance-none rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text-h outline-none focus-visible:ring-2 focus-visible:ring-accent cursor-pointer w-3xs"
         >
           {COUNTRIES.map((country) => (
             <option key={country.code} value={country.code}>
