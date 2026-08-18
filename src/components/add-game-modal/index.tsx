@@ -87,6 +87,10 @@ export function AddGameModal({ isOpen, onClose }: AddGameModalProps) {
         <p className="mt-1 text-sm text-muted">
           Paste a direct Google Play link to fetch game details.
         </p>
+        <p className="text-xs text-muted-double">
+          Example:
+          https://play.google.com/store/apps/details?id=com.king.candycrushsaga
+        </p>
         <label className="mt-4 block text-sm text-muted" htmlFor="game-link">
           Game link
         </label>

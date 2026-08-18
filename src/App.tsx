@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { useTrackingStore } from './store/tracking-store'
 import { AddGameModal } from './components/add-game-modal'
+import { ActiveGamePanel } from './components/active-game-panel'
+import { useTrackingStore } from './store/tracking-store'
 
 function App() {
   const [isAddGameOpen, setIsAddGameOpen] = useState(false)
@@ -15,6 +16,7 @@ function App() {
         </h1>
         <p className="mt-1 text-muted">Track app search rankings</p>
       </header>
+
       <section className="mb-6" aria-label="Add game">
         <button
           type="button"
@@ -24,11 +26,15 @@ function App() {
           + Add game
         </button>
       </section>
-      {!hasGames && (
-        <section className="rounded-xl border border-border bg-surface px-4 py-4 text-muted">
+
+      {hasGames ? (
+        <ActiveGamePanel />
+      ) : (
+        <section className="rounded-xl border border-border bg-surface px-6 py-8 text-muted">
           <p>Add a game by pasting a direct Google Play link.</p>
         </section>
       )}
+
       <AddGameModal
         isOpen={isAddGameOpen}
         onClose={() => setIsAddGameOpen(false)}
