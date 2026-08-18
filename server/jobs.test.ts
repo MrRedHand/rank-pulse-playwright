@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach } from 'vitest'
 import {
   createParseJob,
+  enqueueParseKeywords,
   getParseJob,
   resetParseJobs,
   runParseJob,
@@ -37,7 +38,7 @@ describe('parse jobs', () => {
     }
 
     const job = createParseJob(keywords)
-    await runParseJob(job, { game, country, keywords }, parser)
+    await runParseJob(job, { game, country }, parser)
 
     expect(seen).toEqual(['candy crush', 'match 3'])
     expect(job.status).toBe('done')
@@ -57,10 +58,61 @@ describe('parse jobs', () => {
     }
 
     const job = createParseJob(keywords)
-    await runParseJob(job, { game, country, keywords }, parser)
+    await runParseJob(job, { game, country }, parser)
 
     expect(job.status).toBe('done')
     expect(job.results.k1).toEqual({ status: 'error', rank: null })
     expect(job.results.k2).toEqual({ status: 'done', rank: 4 })
+  })
+
+  it('parses keywords enqueued while the job is running', async () => {
+    let releaseFirst = () => {}
+    let startedFirst = () => {}
+    const firstStarted = new Promise<void>((resolve) => {
+      startedFirst = resolve
+    })
+    const firstGate = new Promise<void>((resolve) => {
+      releaseFirst = resolve
+    })
+    const seen: string[] = []
+
+    const parser: RankParser = {
+      async findRank(keyword) {
+        seen.push(keyword)
+        if (keyword === 'candy crush') {
+          startedFirst()
+          await firstGate
+        }
+        return seen.length
+      },
+    }
+
+    const job = createParseJob([keywords[0]])
+    const running = runParseJob(job, { game, country }, parser)
+    await firstStarted
+
+    expect(enqueueParseKeywords(job.id, [keywords[1]])).toBe('ok')
+    expect(job.results.k2).toEqual({ status: 'pending', rank: null })
+
+    releaseFirst()
+    await running
+
+    expect(seen).toEqual(['candy crush', 'match 3'])
+    expect(job.status).toBe('done')
+    expect(job.results.k1).toEqual({ status: 'done', rank: 1 })
+    expect(job.results.k2).toEqual({ status: 'done', rank: 2 })
+  })
+
+  it('rejects enqueue when the job is not running', async () => {
+    const parser: RankParser = {
+      async findRank() {
+        return 1
+      },
+    }
+    const job = createParseJob([keywords[0]])
+    await runParseJob(job, { game, country }, parser)
+
+    expect(enqueueParseKeywords(job.id, [keywords[1]])).toBe('not-running')
+    expect(enqueueParseKeywords('missing', [keywords[1]])).toBe('not-found')
   })
 })

@@ -10,8 +10,9 @@ import type { RankParser } from './parser/rank-parser.ts'
 export type StartParseInput = {
   game: Game
   country: Country
-  keywords: Keyword[]
 }
+
+export type EnqueueParseResult = 'ok' | 'not-found' | 'not-running'
 
 const jobs = new Map<string, ParseJob>()
 
@@ -33,10 +34,36 @@ export function createParseJob(
     id: jobId,
     status: 'running',
     results,
+    keywordQueue: [...keywords],
   }
 
   jobs.set(job.id, job)
   return job
+}
+
+export function enqueueParseKeywords(
+  jobId: string,
+  keywords: Keyword[],
+): EnqueueParseResult {
+  const job = jobs.get(jobId)
+  if (!job) {
+    return 'not-found'
+  }
+  if (job.status !== 'running') {
+    return 'not-running'
+  }
+
+  for (const keyword of keywords) {
+    const existing = job.results[keyword.id]
+    if (existing?.status === 'pending' || existing?.status === 'parsing') {
+      continue
+    }
+
+    job.results[keyword.id] = { status: 'pending', rank: null }
+    job.keywordQueue.push(keyword)
+  }
+
+  return 'ok'
 }
 
 export async function runParseJob(
@@ -45,7 +72,10 @@ export async function runParseJob(
   parser: RankParser,
 ): Promise<void> {
   try {
-    for (const keyword of input.keywords) {
+    let index = 0
+    while (index < job.keywordQueue.length) {
+      const keyword = job.keywordQueue[index]
+      index += 1
       job.results[keyword.id] = { status: 'parsing', rank: null }
 
       try {

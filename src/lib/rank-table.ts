@@ -51,18 +51,23 @@ function buildTodayCell(
   historyRank: number | null | undefined,
   previousRank: number | null | undefined,
   job: ParseJob | null | undefined,
+  pendingKeywordIds: string[],
 ): RankCellDisplay {
-  if (!job) {
-    return buildValueCell(historyRank, previousRank)
-  }
+  const result = job?.results[keywordId]
+  const isQueued =
+    pendingKeywordIds.includes(keywordId) &&
+    (!result || result.status === 'pending' || result.status === 'parsing')
 
-  const result = job.results[keywordId]
-  if (!result) {
-    return buildValueCell(historyRank, previousRank)
-  }
-
-  if (result.status === 'pending' || result.status === 'parsing') {
+  if (
+    isQueued ||
+    result?.status === 'pending' ||
+    result?.status === 'parsing'
+  ) {
     return { type: 'loading' }
+  }
+
+  if (!job || !result) {
+    return buildValueCell(historyRank, previousRank)
   }
 
   if (result.status === 'error') {
@@ -72,10 +77,23 @@ function buildTodayCell(
   return buildValueCell(result.rank, previousRank)
 }
 
+export function isKeywordParseBusy(
+  keywordId: string,
+  job?: ParseJob | null,
+  pendingKeywordIds: string[] = [],
+): boolean {
+  const result = job?.results[keywordId]
+  if (result?.status === 'pending' || result?.status === 'parsing') {
+    return true
+  }
+  return pendingKeywordIds.includes(keywordId)
+}
+
 export function buildRankTable(
   keywords: Keyword[],
   history: RankSnapshot[],
   job?: ParseJob | null,
+  pendingKeywordIds: string[] = [],
 ): RankTableModel {
   const today = getLocalDateString()
   const snapshotByDate = new Map(
@@ -109,7 +127,13 @@ export function buildRankTable(
 
       if (column.id === 'today') {
         const historyRank = snapshotByDate.get(today)?.results[keyword.id]
-        const cell = buildTodayCell(keyword.id, historyRank, previousRank, job)
+        const cell = buildTodayCell(
+          keyword.id,
+          historyRank,
+          previousRank,
+          job,
+          pendingKeywordIds,
+        )
         cells[column.id] = cell
 
         if (cell.type === 'value') {

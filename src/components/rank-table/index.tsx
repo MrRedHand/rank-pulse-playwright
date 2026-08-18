@@ -1,8 +1,9 @@
 import { memo } from 'react'
-import type { RankCellDisplay } from '../../lib/rank-table'
 import {
   buildRankTable,
   formatRankDelta,
+  isKeywordParseBusy,
+  type RankCellDisplay,
   type RankTableModel,
 } from '../../lib/rank-table'
 import type { Keyword, ParseJob, RankSnapshot } from '../../types'
@@ -13,7 +14,7 @@ type RankTableProps = {
   history: RankSnapshot[]
   lastParsedAt: string | null
   job?: ParseJob | null
-  refreshDisabled?: boolean
+  pendingKeywordIds?: string[]
   onRefreshKeyword?: (keywordId: string) => void
 }
 
@@ -99,10 +100,15 @@ export const RankTable = memo(function RankTable({
   history,
   lastParsedAt,
   job = null,
-  refreshDisabled = false,
+  pendingKeywordIds = [],
   onRefreshKeyword,
 }: RankTableProps) {
-  const model: RankTableModel = buildRankTable(keywords, history, job)
+  const model: RankTableModel = buildRankTable(
+    keywords,
+    history,
+    job,
+    pendingKeywordIds,
+  )
 
   if (keywords.length === 0) {
     return null
@@ -139,7 +145,11 @@ export const RankTable = memo(function RankTable({
                     <RankCell
                       cell={row.cells[column.id]}
                       keywordId={row.keywordId}
-                      refreshDisabled={refreshDisabled}
+                      refreshDisabled={isKeywordParseBusy(
+                        row.keywordId,
+                        job,
+                        pendingKeywordIds,
+                      )}
                       onRefreshKeyword={onRefreshKeyword}
                     />
                   </td>

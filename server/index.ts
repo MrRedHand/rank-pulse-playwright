@@ -2,7 +2,12 @@ import { createServer } from 'node:http'
 import { Buffer } from 'node:buffer'
 import { chromium } from 'playwright'
 import { GooglePlayAppParser } from './parser/play-store-app-parser.ts'
-import { createParseJob, getParseJob, runParseJob } from './jobs.ts'
+import {
+  createParseJob,
+  enqueueParseKeywords,
+  getParseJob,
+  runParseJob,
+} from './jobs.ts'
 import {
   isValidPlayStoreLink,
   normalizePlayStoreLink,
@@ -141,12 +146,48 @@ async function main() {
         }
 
         const job = createParseJob(keywords)
-        void runParseJob(job, { game, country, keywords }, rankParser)
+        void runParseJob(job, { game, country }, rankParser)
         json(response, 200, { jobId: job.id })
       } catch (error) {
         json(response, 500, {
           error:
             error instanceof Error ? error.message : 'Failed to start parse',
+        })
+      }
+      return
+    }
+
+    const appendKeywordsMatch = url.match(/^\/api\/parse\/([^/]+)\/keywords$/)
+    if (request.method === 'POST' && appendKeywordsMatch) {
+      try {
+        const body = await readJsonBody(request)
+        const keywords =
+          typeof body === 'object' && body !== null && 'keywords' in body
+            ? body.keywords
+            : null
+
+        if (!isKeywords(keywords)) {
+          json(response, 400, { error: 'Invalid parse payload' })
+          return
+        }
+
+        const result = enqueueParseKeywords(appendKeywordsMatch[1], keywords)
+        if (result === 'not-found') {
+          json(response, 404, { error: 'Job not found' })
+          return
+        }
+        if (result === 'not-running') {
+          json(response, 409, { error: 'Job is not running' })
+          return
+        }
+
+        json(response, 200, { ok: true })
+      } catch (error) {
+        json(response, 500, {
+          error:
+            error instanceof Error
+              ? error.message
+              : 'Failed to enqueue keywords',
         })
       }
       return

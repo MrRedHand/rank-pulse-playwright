@@ -45,4 +45,5 @@ export type ParseJob = {
   id: string
   status: 'running' | 'done' | 'error'
   results: Record<string, KeywordParseResult>
+  keywordQueue: Keyword[]
 }
