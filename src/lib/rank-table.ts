@@ -1,10 +1,12 @@
-import type { Keyword, RankSnapshot } from '../types'
+import type { Keyword, ParseJob, RankSnapshot } from '../types'
 import { formatSnapshotDate, getLocalDateString } from './dates'
 
 export type RankCellDisplay =
   | { type: 'value'; rank: number; delta: number | null }
   | { type: 'missing' }
   | { type: 'empty' }
+  | { type: 'loading' }
+  | { type: 'error' }
 
 export type RankTableColumn = {
   id: string
@@ -23,7 +25,7 @@ export type RankTableModel = {
   rows: RankTableRow[]
 }
 
-function buildCell(
+function buildValueCell(
   rank: number | null | undefined,
   previousRank: number | null | undefined,
 ): RankCellDisplay {
@@ -43,9 +45,32 @@ function buildCell(
   return { type: 'value', rank, delta }
 }
 
+function buildTodayCell(
+  keywordId: string,
+  historyRank: number | null | undefined,
+  previousRank: number | null | undefined,
+  job: ParseJob | null | undefined,
+): RankCellDisplay {
+  if (!job) {
+    return buildValueCell(historyRank, previousRank)
+  }
+
+  const result = job.results[keywordId]
+  if (!result || result.status === 'pending' || result.status === 'parsing') {
+    return { type: 'loading' }
+  }
+
+  if (result.status === 'error') {
+    return { type: 'error' }
+  }
+
+  return buildValueCell(result.rank, previousRank)
+}
+
 export function buildRankTable(
   keywords: Keyword[],
   history: RankSnapshot[],
+  job?: ParseJob | null,
 ): RankTableModel {
   const today = getLocalDateString()
   const snapshotByDate = new Map(
@@ -70,9 +95,20 @@ export function buildRankTable(
     let previousRank: number | null | undefined = undefined
 
     for (const column of columns) {
-      const snapshot = snapshotByDate.get(column.date)
-      const rank = snapshot?.results[keyword.id]
-      cells[column.id] = buildCell(rank, previousRank)
+      if (column.id === 'today') {
+        const historyRank = snapshotByDate.get(today)?.results[keyword.id]
+        const cell = buildTodayCell(keyword.id, historyRank, previousRank, job)
+        cells[column.id] = cell
+
+        if (cell.type === 'value') {
+          previousRank = cell.rank
+        }
+
+        continue
+      }
+
+      const rank = snapshotByDate.get(column.date)?.results[keyword.id]
+      cells[column.id] = buildValueCell(rank, previousRank)
 
       if (rank !== undefined && rank !== null) {
         previousRank = rank

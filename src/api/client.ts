@@ -18,3 +18,13 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   }
   return response.json() as Promise<T>
 }
+
+export async function apiGet<T>(path: string): Promise<T> {
+  const response = await fetch(path)
+
+  if (!response.ok) {
+    throw new ApiError(`Request failed: ${response.status}`, response.status)
+  }
+
+  return response.json() as Promise<T>
+}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   selectActiveTracking,
   useTrackingStore,
@@ -8,19 +8,53 @@ import { GamesDropdown } from '../games-dropdown'
 import { KeywordsModal } from '../keywords-modal'
 import { mergeKeywordsFromText } from '../../lib/keywords'
 import { RankTable } from '../rank-table'
+import { useStartParse } from '../../hooks/use-start-parse'
+import { useParseJob } from '../../hooks/use-parse-job'
+import { snapshotFromJob } from '../../lib/snapshots'
+import { getLocalDateString } from '../../lib/dates'
 
 export function ActiveGamePanel() {
   const activeTracking = useTrackingStore(selectActiveTracking)
   const setKeywords = useTrackingStore((state) => state.setKeywords)
+  const addSnapshot = useTrackingStore((state) => state.addSnapshot)
 
   const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false)
   const [keywordDraft, setKeywordDraft] = useState('')
+  const [activeJob, setActiveJob] = useState<{
+    jobId: string
+    gameId: string
+  } | null>(null)
+  const persistedJobIdRef = useRef<string | null>(null)
+
+  const startParse = useStartParse()
+  const jobId =
+    activeTracking && activeJob?.gameId === activeTracking.game.id
+      ? activeJob.jobId
+      : null
+  const { data: job } = useParseJob(jobId)
+
+  useEffect(() => {
+    if (!job || (job.status !== 'done' && job.status !== 'error')) {
+      return
+    }
+
+    if (persistedJobIdRef.current === job.id) {
+      return
+    }
+
+    persistedJobIdRef.current = job.id
+    addSnapshot(
+      snapshotFromJob(job, getLocalDateString()),
+      new Date().toISOString(),
+    )
+  }, [job, addSnapshot])
 
   if (!activeTracking) {
     return null
   }
 
-  const { game, keywords } = activeTracking
+  const { game, country, keywords } = activeTracking
+  const isParsing = startParse.isPending || job?.status === 'running'
 
   function openKeywordModal() {
     setKeywordDraft(keywords.map((keyword) => keyword.value).join('\n'))
@@ -35,6 +69,21 @@ export function ActiveGamePanel() {
   function handleSaveKeywords() {
     setKeywords(mergeKeywordsFromText(keywordDraft, keywords))
     closeKeywordModal()
+  }
+
+  function handleParse() {
+    if (keywords.length === 0 || isParsing) {
+      return
+    }
+
+    startParse.mutate(
+      { game, country, keywords },
+      {
+        onSuccess: ({ jobId: nextJobId }) => {
+          setActiveJob({ jobId: nextJobId, gameId: game.id })
+        },
+      },
+    )
   }
 
   return (
@@ -82,18 +131,19 @@ export function ActiveGamePanel() {
 
         <button
           type="button"
-          disabled={keywords.length === 0}
+          onClick={handleParse}
+          disabled={keywords.length === 0 || isParsing}
           className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
         >
-          ▶ Parse
+          {isParsing ? 'Parsing…' : '▶ Parse'}
         </button>
       </div>
 
+      {startParse.isError && (
+        <p className="text-sm text-danger">Failed to start parse.</p>
+      )}
+
       {keywords.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-surface/50 px-6 py-8 text-center text-muted">
-          <p>Add keywords to start tracking search rankings.</p>
-        </div>
-      ) : keywords.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-surface/50 px-6 py-8 text-center text-muted">
           <p>Add keywords to start tracking search rankings.</p>
         </div>
@@ -102,6 +152,7 @@ export function ActiveGamePanel() {
           keywords={keywords}
           history={activeTracking.history}
           lastParsedAt={activeTracking.lastParsedAt}
+          job={job}
         />
       )}
 

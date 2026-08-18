@@ -4,13 +4,14 @@ import {
   formatRankDelta,
   type RankTableModel,
 } from '../../lib/rank-table'
-import type { Keyword, RankSnapshot } from '../../types'
+import type { Keyword, ParseJob, RankSnapshot } from '../../types'
 import { formatLastParsedAt } from '../../lib/dates'
 
 type RankTableProps = {
   keywords: Keyword[]
   history: RankSnapshot[]
   lastParsedAt: string | null
+  job?: ParseJob | null
 }
 
 function RankCell({ cell }: { cell: RankCellDisplay }) {
@@ -20,6 +21,19 @@ function RankCell({ cell }: { cell: RankCellDisplay }) {
 
   if (cell.type === 'missing') {
     return <span className="text-muted">—</span>
+  }
+
+  if (cell.type === 'loading') {
+    return (
+      <span
+        className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-muted border-t-accent"
+        aria-label="Parsing"
+      />
+    )
+  }
+
+  if (cell.type === 'error') {
+    return <span className="text-danger">!</span>
   }
 
   const deltaLabel = formatRankDelta(cell.delta)
@@ -32,8 +46,13 @@ function RankCell({ cell }: { cell: RankCellDisplay }) {
   )
 }
 
-export function RankTable({ keywords, history, lastParsedAt }: RankTableProps) {
-  const model: RankTableModel = buildRankTable(keywords, history)
+export function RankTable({
+  keywords,
+  history,
+  lastParsedAt,
+  job = null,
+}: RankTableProps) {
+  const model: RankTableModel = buildRankTable(keywords, history, job)
 
   if (keywords.length === 0) {
     return null
