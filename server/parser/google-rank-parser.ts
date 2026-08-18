@@ -8,17 +8,7 @@ import {
   findRankInSearchResponse,
   isPlayStoreBatchExecuteUrl,
 } from '../lib/play-store-batch-execute.ts'
-
-function buildPlayStoreSearchUrl(keyword: string, countryCode: string): string {
-  const params = new URLSearchParams({
-    q: keyword,
-    c: 'apps',
-    hl: 'en',
-    gl: countryCode,
-  })
-
-  return `https://play.google.com/store/search?${params.toString()}`
-}
+import { buildPlayStoreSearchUrl } from './play-store-search.ts'
 
 export class GoogleRankParser implements RankParser {
   private readonly browser: Browser

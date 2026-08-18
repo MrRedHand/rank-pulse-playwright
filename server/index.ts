@@ -2,13 +2,13 @@ import { createServer } from 'node:http'
 import { Buffer } from 'node:buffer'
 import { chromium } from 'playwright'
 import { GooglePlayAppParser } from './parser/play-store-app-parser.ts'
-import { GoogleRankParser } from './parser/google-rank-parser.ts'
 import { createParseJob, getParseJob, runParseJob } from './jobs.ts'
 import {
   isValidPlayStoreLink,
   normalizePlayStoreLink,
 } from '../src/lib/play-store-link-validator.ts'
 import type { Country, Game, Keyword } from '../src/types.ts'
+import { GoogleDomRankParser } from './parser/google-dom-rank-parser.ts'
 
 const PORT = 3001
 
@@ -69,7 +69,7 @@ function json(
 async function main() {
   const browser = await chromium.launch({ headless: true })
   const appParser = new GooglePlayAppParser(browser)
-  const rankParser = new GoogleRankParser(browser)
+  const rankParser = new GoogleDomRankParser(browser)
 
   const server = createServer(async (request, response) => {
     const url = request.url ?? ''
