@@ -93,20 +93,16 @@ export function ActiveGamePanel() {
         <div className="rounded-xl border border-dashed border-border bg-surface/50 px-6 py-8 text-center text-muted">
           <p>Add keywords to start tracking search rankings.</p>
         </div>
-      ) : (
-        <div className="overflow-hidden rounded-xl border border-border bg-surface">
-          {keywords.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border bg-surface/50 px-6 py-8 text-center text-muted">
-              <p>Add keywords to start tracking search rankings.</p>
-            </div>
-          ) : (
-            <RankTable
-              keywords={keywords}
-              history={activeTracking.history}
-              lastParsedAt={activeTracking.lastParsedAt}
-            />
-          )}
+      ) : keywords.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border bg-surface/50 px-6 py-8 text-center text-muted">
+          <p>Add keywords to start tracking search rankings.</p>
         </div>
+      ) : (
+        <RankTable
+          keywords={keywords}
+          history={activeTracking.history}
+          lastParsedAt={activeTracking.lastParsedAt}
+        />
       )}
 
       <KeywordsModal

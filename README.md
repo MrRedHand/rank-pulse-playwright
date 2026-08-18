@@ -8,10 +8,10 @@ React TS
 Zustand
 Tenstack Query
 Node.js
-Playwright
+Playwright (will switch to Puppeteer in future, need lightweight solution)
 Vite
 Tailwind CSS
 
 # What it do
 
-When you add a link to your game - node.js lauches Playwright to crawl google play page and get info about your game. It's stored in your browser local storage for the moment. Then you press "Add keywords" and fill modal window with keywords that you think you need. Then you press "Parse" and playwright starts another session of crawling by each keyword and trying to find your game. If it's founded - place is recorded and displayed in table.
+When you add a link to your game - node.js lauches Playwright to crawl google play page and get info about your game. It's stored in your browser local storage for the moment. Then you press "Add keywords" and fill modal window with keywords that you think you need. Then you press "Parse" and parser starts another session of crawling by each keyword and trying to find your game. If it's founded - place is recorded and displayed in table.
