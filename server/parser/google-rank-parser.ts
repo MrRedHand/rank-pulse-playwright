@@ -46,7 +46,7 @@ function createBatchQueue(page: Page): BatchQueue {
     void response
       .text()
       .then((body) => {
-        if (isPlayStoreSearchResultsBatch(url, body)) {
+        if (isPlayStoreSearchResultsBatch(url)) {
           queue.bodies.push(body)
         }
       })
@@ -86,7 +86,7 @@ async function waitForNewBatch(
   return queue.bodies.length > previousCount
 }
 
-function drainQueue(
+function consumeNewBatchBodies(
   queue: BatchQueue,
   consumed: number,
 ): {
@@ -154,13 +154,16 @@ export class GoogleRankParser implements RankParser {
 
       let appIds = extractSearchResultAppIds(await page.content())
       let consumed = 0
-      const firstPage = drainQueue(queue, consumed)
+      const firstPage = consumeNewBatchBodies(queue, consumed)
       consumed = firstPage.consumed
       appIds = mergeUniquePackageIds(appIds, firstPage.ids)
 
-      const found = () => findRankInAppIds(appIds, game.id)
-      if (found() !== null || appIds.length >= PLAY_STORE_SEARCH_MAX_RESULTS) {
-        return found()
+      const rankIfPresent = () => findRankInAppIds(appIds, game.id)
+      if (
+        rankIfPresent() !== null ||
+        appIds.length >= PLAY_STORE_SEARCH_MAX_RESULTS
+      ) {
+        return rankIfPresent()
       }
 
       for (let step = 0; step < MAX_STEPS; step += 1) {
@@ -172,12 +175,12 @@ export class GoogleRankParser implements RankParser {
         await page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
         await waitForNewBatch(page, queue, previousCount, BATCH_WAIT_MS)
 
-        const afterScroll = drainQueue(queue, consumed)
+        const afterScroll = consumeNewBatchBodies(queue, consumed)
         consumed = afterScroll.consumed
         appIds = mergeUniquePackageIds(appIds, afterScroll.ids)
 
         if (
-          found() !== null ||
+          rankIfPresent() !== null ||
           appIds.length >= PLAY_STORE_SEARCH_MAX_RESULTS
         ) {
           break
@@ -187,10 +190,10 @@ export class GoogleRankParser implements RankParser {
         const clicked = await clickShowMoreIfPresent(page)
         if (clicked) {
           await waitForNewBatch(page, queue, beforeClick, SHOW_MORE_WAIT_MS)
-          const afterClick = drainQueue(queue, consumed)
+          const afterClick = consumeNewBatchBodies(queue, consumed)
           consumed = afterClick.consumed
           appIds = mergeUniquePackageIds(appIds, afterClick.ids)
-          if (found() !== null) {
+          if (rankIfPresent() !== null) {
             break
           }
           continue
@@ -201,10 +204,10 @@ export class GoogleRankParser implements RankParser {
         }
       }
 
-      return found()
+      return rankIfPresent()
     } catch (error) {
       console.error(`Google rank parse failed for "${keyword}"`, error)
-      return null
+      throw error
     } finally {
       await page?.close().catch(() => undefined)
     }

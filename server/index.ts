@@ -16,17 +16,32 @@ import type { Country, Game, Keyword } from '../src/types.ts'
 import { GoogleRankParser } from './parser/google-rank-parser.ts'
 
 const PORT = 3001
+const HOST = '127.0.0.1'
+const MAX_JSON_BODY_BYTES = 1_000_000
+
+class RequestBodyTooLargeError extends Error {
+  constructor() {
+    super('Request body too large')
+    this.name = 'RequestBodyTooLargeError'
+  }
+}
 
 async function readJsonBody(request: import('node:http').IncomingMessage) {
   const chunks: Buffer[] = []
+  let size = 0
   for await (const chunk of request) {
+    size += chunk.length
+    if (size > MAX_JSON_BODY_BYTES) {
+      request.destroy()
+      throw new RequestBodyTooLargeError()
+    }
     chunks.push(Buffer.from(chunk))
   }
   const raw = Buffer.concat(chunks).toString('utf8')
   return raw ? (JSON.parse(raw) as unknown) : null
 }
 
-function isGame(value: unknown): value is Game {
+function hasNonEmptyGameId(value: unknown): value is Game {
   return (
     typeof value === 'object' &&
     value !== null &&
@@ -36,7 +51,7 @@ function isGame(value: unknown): value is Game {
   )
 }
 
-function isCountry(value: unknown): value is Country {
+function hasNonEmptyCountryCode(value: unknown): value is Country {
   return (
     typeof value === 'object' &&
     value !== null &&
@@ -46,7 +61,7 @@ function isCountry(value: unknown): value is Country {
   )
 }
 
-function isKeywords(value: unknown): value is Keyword[] {
+function isNonEmptyKeywordList(value: unknown): value is Keyword[] {
   return (
     Array.isArray(value) &&
     value.length > 0 &&
@@ -62,7 +77,7 @@ function isKeywords(value: unknown): value is Keyword[] {
   )
 }
 
-function json(
+function sendJsonResponse(
   response: import('node:http').ServerResponse,
   status: number,
   body: unknown,
@@ -71,20 +86,27 @@ function json(
   response.end(JSON.stringify(body))
 }
 
+function sendErrorResponse(
+  response: import('node:http').ServerResponse,
+  fallbackMessage: string,
+  error: unknown,
+) {
+  if (error instanceof RequestBodyTooLargeError) {
+    sendJsonResponse(response, 413, { error: 'Request body too large' })
+    return
+  }
+
+  sendJsonResponse(response, 500, { error: fallbackMessage })
+}
+
 async function main() {
   let browser = await chromium.launch({ headless: true })
   let appParser = new GooglePlayAppParser(browser)
   let rankParser = new GoogleRankParser(browser)
 
-  async function ensureBrowser() {
+  async function reconnectBrowserIfDisconnected() {
     if (browser.isConnected()) {
-      try {
-        const probe = await browser.newPage()
-        await probe.close()
-        return
-      } catch {
-        await browser.close().catch(() => undefined)
-      }
+      return
     }
 
     browser = await chromium.launch({ headless: true })
@@ -97,7 +119,7 @@ async function main() {
 
     if (request.method === 'POST' && url === '/api/games/fetch') {
       try {
-        await ensureBrowser()
+        await reconnectBrowserIfDisconnected()
         const body = await readJsonBody(request)
         const link =
           typeof body === 'object' &&
@@ -108,24 +130,21 @@ async function main() {
             : ''
 
         if (!isValidPlayStoreLink(link)) {
-          json(response, 400, { error: 'Invalid Play Store link' })
+          sendJsonResponse(response, 400, { error: 'Invalid Play Store link' })
           return
         }
 
         const game = await appParser.fetchApp(link)
-        json(response, 200, game)
+        sendJsonResponse(response, 200, game)
       } catch (error) {
-        json(response, 500, {
-          error:
-            error instanceof Error ? error.message : 'Failed to fetch game',
-        })
+        sendErrorResponse(response, 'Failed to fetch game', error)
       }
       return
     }
 
     if (request.method === 'POST' && url === '/api/parse') {
       try {
-        await ensureBrowser()
+        await reconnectBrowserIfDisconnected()
         const body = await readJsonBody(request)
         const game =
           typeof body === 'object' && body !== null && 'game' in body
@@ -140,19 +159,20 @@ async function main() {
             ? body.keywords
             : null
 
-        if (!isGame(game) || !isCountry(country) || !isKeywords(keywords)) {
-          json(response, 400, { error: 'Invalid parse payload' })
+        if (
+          !hasNonEmptyGameId(game) ||
+          !hasNonEmptyCountryCode(country) ||
+          !isNonEmptyKeywordList(keywords)
+        ) {
+          sendJsonResponse(response, 400, { error: 'Invalid parse payload' })
           return
         }
 
         const job = createParseJob(keywords)
-        void runParseJob(job, { game, country }, rankParser)
-        json(response, 200, { jobId: job.id })
+        void runParseJob(job, { game, country }, () => rankParser)
+        sendJsonResponse(response, 200, { jobId: job.id })
       } catch (error) {
-        json(response, 500, {
-          error:
-            error instanceof Error ? error.message : 'Failed to start parse',
-        })
+        sendErrorResponse(response, 'Failed to start parse', error)
       }
       return
     }
@@ -166,29 +186,24 @@ async function main() {
             ? body.keywords
             : null
 
-        if (!isKeywords(keywords)) {
-          json(response, 400, { error: 'Invalid parse payload' })
+        if (!isNonEmptyKeywordList(keywords)) {
+          sendJsonResponse(response, 400, { error: 'Invalid parse payload' })
           return
         }
 
         const result = enqueueParseKeywords(appendKeywordsMatch[1], keywords)
         if (result === 'not-found') {
-          json(response, 404, { error: 'Job not found' })
+          sendJsonResponse(response, 404, { error: 'Job not found' })
           return
         }
         if (result === 'not-running') {
-          json(response, 409, { error: 'Job is not running' })
+          sendJsonResponse(response, 409, { error: 'Job is not running' })
           return
         }
 
-        json(response, 200, { ok: true })
+        sendJsonResponse(response, 200, { ok: true })
       } catch (error) {
-        json(response, 500, {
-          error:
-            error instanceof Error
-              ? error.message
-              : 'Failed to enqueue keywords',
-        })
+        sendErrorResponse(response, 'Failed to enqueue keywords', error)
       }
       return
     }
@@ -197,10 +212,10 @@ async function main() {
     if (request.method === 'GET' && parseJobMatch) {
       const job = getParseJob(parseJobMatch[1])
       if (!job) {
-        json(response, 404, { error: 'Job not found' })
+        sendJsonResponse(response, 404, { error: 'Job not found' })
         return
       }
-      json(response, 200, job)
+      sendJsonResponse(response, 200, job)
       return
     }
 
@@ -208,8 +223,8 @@ async function main() {
     response.end()
   })
 
-  server.listen(PORT, () => {
-    console.log(`API server listening on http://localhost:${PORT}`)
+  server.listen(PORT, HOST, () => {
+    console.log(`API server listening on http://${HOST}:${PORT}`)
   })
 
   process.on('SIGINT', async () => {

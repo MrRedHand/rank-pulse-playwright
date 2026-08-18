@@ -29,7 +29,7 @@ export function KeywordsModal({
           id="keyword-modal-title"
           className="text-lg font-semibold text-text-h"
         >
-          Add keywords
+          Edit keywords
         </h2>
         <p className="mt-1 text-sm text-muted">
           One keyword per line. Empty lines are ignored. Duplicates are removed.

@@ -17,7 +17,12 @@ type TrackingStore = {
   selectGame: (gameId: string) => void
   setCountry: (country: Country) => void
   setKeywords: (keywords: Keyword[]) => void
-  addSnapshot: (snapshot: RankSnapshot, parsedAt: string) => void
+  addSnapshot: (
+    gameId: string,
+    snapshot: RankSnapshot,
+    parsedAt: string,
+    countryCode: string,
+  ) => void
 }
 
 function createTracking(game: Game, country: Country): TrackingData {
@@ -25,8 +30,8 @@ function createTracking(game: Game, country: Country): TrackingData {
     game,
     country,
     keywords: [],
-    history: [],
-    lastParsedAt: null,
+    historyByCountry: {},
+    lastParsedAtByCountry: {},
   }
 }
 
@@ -54,6 +59,41 @@ export function selectActiveTracking(
     return null
   }
   return state.trackedGames[state.activeGameId] ?? null
+}
+
+type LegacyTrackingData = Omit<
+  TrackingData,
+  'historyByCountry' | 'lastParsedAtByCountry'
+> & {
+  history?: RankSnapshot[]
+  lastParsedAt?: string | null
+  historyByCountry?: Record<string, RankSnapshot[]>
+  lastParsedAtByCountry?: Record<string, string | null>
+}
+
+function migrateTrackingData(tracking: LegacyTrackingData): TrackingData {
+  if (tracking.historyByCountry && tracking.lastParsedAtByCountry) {
+    return {
+      game: tracking.game,
+      country: tracking.country,
+      keywords: tracking.keywords,
+      historyByCountry: tracking.historyByCountry,
+      lastParsedAtByCountry: tracking.lastParsedAtByCountry,
+    }
+  }
+
+  const countryCode = tracking.country?.code ?? DEFAULT_COUNTRY.code
+  const history = tracking.history ?? []
+  const lastParsedAt = tracking.lastParsedAt ?? null
+
+  return {
+    game: tracking.game,
+    country: tracking.country,
+    keywords: tracking.keywords,
+    historyByCountry: history.length > 0 ? { [countryCode]: history } : {},
+    lastParsedAtByCountry:
+      lastParsedAt !== null ? { [countryCode]: lastParsedAt } : {},
+  }
 }
 
 export const useTrackingStore = create<TrackingStore>()(
@@ -92,27 +132,45 @@ export const useTrackingStore = create<TrackingStore>()(
 
       setCountry: (country) =>
         set((state) =>
-          updateActiveTracking(state, (singleTrackedGame) => ({
-            ...singleTrackedGame,
+          updateActiveTracking(state, (activeTracking) => ({
+            ...activeTracking,
             country,
           })),
         ),
 
       setKeywords: (keywords) =>
         set((state) =>
-          updateActiveTracking(state, (singleTrackedGame) => ({
-            ...singleTrackedGame,
+          updateActiveTracking(state, (activeTracking) => ({
+            ...activeTracking,
             keywords,
           })),
         ),
-      addSnapshot: (snapshot, parsedAt) =>
-        set((state) =>
-          updateActiveTracking(state, (singleTrackedGame) => ({
-            ...singleTrackedGame,
-            history: upsertSnapshot(singleTrackedGame.history, snapshot),
-            lastParsedAt: parsedAt,
-          })),
-        ),
+      addSnapshot: (gameId, snapshot, parsedAt, countryCode) =>
+        set((state) => {
+          const tracking = state.trackedGames[gameId]
+          if (!tracking) {
+            return {}
+          }
+
+          const history = tracking.historyByCountry[countryCode] ?? []
+
+          return {
+            trackedGames: {
+              ...state.trackedGames,
+              [gameId]: {
+                ...tracking,
+                historyByCountry: {
+                  ...tracking.historyByCountry,
+                  [countryCode]: upsertSnapshot(history, snapshot),
+                },
+                lastParsedAtByCountry: {
+                  ...tracking.lastParsedAtByCountry,
+                  [countryCode]: parsedAt,
+                },
+              },
+            },
+          }
+        }),
     }),
     {
       name: 'rankpulse-tracking',
@@ -120,19 +178,39 @@ export const useTrackingStore = create<TrackingStore>()(
         trackedGames: state.trackedGames,
         activeGameId: state.activeGameId,
       }),
-      version: 1,
+      version: 2,
       migrate: (persisted, version) => {
-        if (version === 0 && persisted && typeof persisted === 'object') {
-          const old = persisted as { tracking?: TrackingData | null }
+        if (!persisted || typeof persisted !== 'object') {
+          return { trackedGames: {}, activeGameId: null }
+        }
+
+        if (version === 0) {
+          const old = persisted as { tracking?: LegacyTrackingData | null }
           if (!old.tracking) {
             return { trackedGames: {}, activeGameId: null }
           }
+
           return {
-            trackedGames: { [old.tracking.game.id]: old.tracking },
+            trackedGames: {
+              [old.tracking.game.id]: migrateTrackingData(old.tracking),
+            },
             activeGameId: old.tracking.game.id,
           }
         }
-        return persisted as Pick<TrackingStore, 'trackedGames' | 'activeGameId'>
+
+        const state = persisted as {
+          trackedGames?: Record<string, LegacyTrackingData>
+          activeGameId?: string | null
+        }
+
+        return {
+          trackedGames: Object.fromEntries(
+            Object.entries(state.trackedGames ?? {}).map(
+              ([gameId, tracking]) => [gameId, migrateTrackingData(tracking)],
+            ),
+          ),
+          activeGameId: state.activeGameId ?? null,
+        }
       },
     },
   ),

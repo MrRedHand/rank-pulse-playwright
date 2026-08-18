@@ -16,13 +16,6 @@ export function parseKeywordLines(text: string): string[] {
   return values
 }
 
-export function createKeywordsFromText(text: string): Keyword[] {
-  return parseKeywordLines(text).map((value) => ({
-    id: crypto.randomUUID(),
-    value,
-  }))
-}
-
 export function mergeKeywordsFromText(
   text: string,
   existingKeywords: Keyword[],

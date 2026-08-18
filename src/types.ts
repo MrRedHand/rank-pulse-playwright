@@ -25,13 +25,8 @@ export type TrackingData = {
   game: Game
   country: Country
   keywords: Keyword[]
-  history: RankSnapshot[]
-  lastParsedAt: string | null
-}
-
-export type TrackingCollection = {
-  trackedGames: Record<string, TrackingData>
-  activeGameId: string | null
+  historyByCountry: Record<string, RankSnapshot[]>
+  lastParsedAtByCountry: Record<string, string | null>
 }
 
 export type KeywordParseStatus = 'pending' | 'parsing' | 'done' | 'error'

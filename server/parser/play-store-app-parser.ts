@@ -1,16 +1,6 @@
 import type { Browser } from 'playwright'
-
-export type FetchedGame = {
-  id: string
-  link: string
-  name: string
-  icon: string
-  shortDescription: string
-}
-
-export interface PlayStoreAppParser {
-  fetchApp(url: string): Promise<FetchedGame>
-}
+import { extractPlayStoreAppId } from '../../src/lib/play-store-link-validator.ts'
+import type { Game } from '../../src/types.ts'
 
 const PLAY_STORE_TITLE_SUFFIX = ' - Apps on Google Play'
 
@@ -22,28 +12,12 @@ function sanitizePlayStoreTitle(pageTitle: string): string {
   return trimmed
 }
 
-function extractPlayStoreAppId(rawUrl: string): string | null {
-  try {
-    const url = new URL(rawUrl.trim())
-    if (url.hostname !== 'play.google.com') {
-      return null
-    }
-    if (!url.pathname.startsWith('/store/apps/details')) {
-      return null
-    }
-    const id = url.searchParams.get('id')
-    return id?.trim() ? id.trim() : null
-  } catch {
-    return null
-  }
-}
-
-export class GooglePlayAppParser implements PlayStoreAppParser {
+export class GooglePlayAppParser {
   private readonly browser: Browser
   constructor(browser: Browser) {
     this.browser = browser
   }
-  async fetchApp(url: string): Promise<FetchedGame> {
+  async fetchApp(url: string): Promise<Game> {
     const page = await this.browser.newPage()
     try {
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })

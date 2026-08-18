@@ -89,17 +89,11 @@ describe('play-store batch execute', () => {
     const suggestUrl =
       'https://play.google.com/_/PlayStoreUi/data/batchexecute?rpcids=teXCtc'
 
-    expect(isPlayStoreSearchResultsBatch(searchUrl, 'short')).toBe(true)
-    expect(isPlayStoreSearchResultsBatch(pageUrl, 'short')).toBe(true)
-    expect(isPlayStoreSearchResultsBatch(suggestUrl, 'short')).toBe(false)
-    expect(isPlayStoreSearchResultsBatch(suggestUrl, 'x'.repeat(12_000))).toBe(
-      true,
-    )
+    expect(isPlayStoreSearchResultsBatch(searchUrl)).toBe(true)
+    expect(isPlayStoreSearchResultsBatch(pageUrl)).toBe(true)
+    expect(isPlayStoreSearchResultsBatch(suggestUrl)).toBe(false)
     expect(
-      isPlayStoreSearchResultsBatch(
-        'https://play.google.com/store/search',
-        'x',
-      ),
+      isPlayStoreSearchResultsBatch('https://play.google.com/store/search'),
     ).toBe(false)
   })
 

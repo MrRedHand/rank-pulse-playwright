@@ -91,7 +91,7 @@ describe('parse jobs', () => {
     const running = runParseJob(job, { game, country }, parser)
     await firstStarted
 
-    expect(enqueueParseKeywords(job.id, [keywords[1]])).toBe('ok')
+    expect(enqueueParseKeywords(job.id, [keywords[1]])).toBe('enqueued')
     expect(job.results.k2).toEqual({ status: 'pending', rank: null })
 
     releaseFirst()
@@ -114,5 +114,46 @@ describe('parse jobs', () => {
 
     expect(enqueueParseKeywords(job.id, [keywords[1]])).toBe('not-running')
     expect(enqueueParseKeywords('missing', [keywords[1]])).toBe('not-found')
+  })
+
+  it('records null rank as done, not error', async () => {
+    const parser: RankParser = {
+      async findRank() {
+        return null
+      },
+    }
+
+    const job = createParseJob([keywords[0]])
+    await runParseJob(job, { game, country }, parser)
+
+    expect(job.status).toBe('done')
+    expect(job.results.k1).toEqual({ status: 'done', rank: null })
+  })
+
+  it('runs parse jobs one at a time', async () => {
+    let concurrent = 0
+    let maxConcurrent = 0
+    const parser: RankParser = {
+      async findRank() {
+        concurrent += 1
+        maxConcurrent = Math.max(maxConcurrent, concurrent)
+        await new Promise((resolve) => {
+          setTimeout(resolve, 20)
+        })
+        concurrent -= 1
+        return 1
+      },
+    }
+
+    const firstJob = createParseJob([keywords[0]])
+    const secondJob = createParseJob([keywords[1]])
+    await Promise.all([
+      runParseJob(firstJob, { game, country }, parser),
+      runParseJob(secondJob, { game, country }, parser),
+    ])
+
+    expect(maxConcurrent).toBe(1)
+    expect(firstJob.status).toBe('done')
+    expect(secondJob.status).toBe('done')
   })
 })

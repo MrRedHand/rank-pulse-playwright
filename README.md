@@ -18,7 +18,6 @@ When you add a link to your game - node.js lauches Playwright to crawl google pl
 
 # Trade-offs
 
-- Currently it's a DOM parsing, in feature i have a plan to switch to network response parsing
 - Playwright is usefull with its Android device emulation, but its heavy and slow
 - Data is stored in local storage of your browser, which is lame, i know :) Will switch to DB in future
 

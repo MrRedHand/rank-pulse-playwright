@@ -1,7 +1,6 @@
 const PLAY_STORE_BATCH_EXECUTE_PATH = '/_/PlayStoreUi/data/batchexecute'
 const XSSI_PREFIX = ")]}'"
 const SEARCH_RESULT_RPC_IDS = ['lGYRle', 'qnKhOb'] as const
-const MIN_SEARCH_RESULTS_BODY_LENGTH = 10_000
 
 export const PLAY_STORE_SEARCH_MAX_RESULTS = 250
 
@@ -34,20 +33,13 @@ export function getBatchExecuteRpcIds(url: string): string {
   }
 }
 
-export function isPlayStoreSearchResultsBatch(
-  url: string,
-  body: string,
-): boolean {
+export function isPlayStoreSearchResultsBatch(url: string): boolean {
   if (!isPlayStoreBatchExecuteUrl(url)) {
     return false
   }
 
   const rpcids = getBatchExecuteRpcIds(url)
-  if (SEARCH_RESULT_RPC_IDS.some((rpcId) => rpcids.includes(rpcId))) {
-    return true
-  }
-
-  return body.length >= MIN_SEARCH_RESULTS_BODY_LENGTH
+  return SEARCH_RESULT_RPC_IDS.some((rpcId) => rpcids.includes(rpcId))
 }
 
 export function stripXssiPrefix(raw: string): string {
@@ -147,36 +139,4 @@ export function findRankInSearchResponse(
   )
 
   return rank?.place ?? null
-}
-
-/** Для отладки: longest nested array (не используем для rank напрямую) */
-export function findLongestNestedArray(data: unknown): unknown[] | null {
-  let longest: unknown[] | null = null
-
-  function walk(node: unknown) {
-    if (Array.isArray(node)) {
-      if (!longest || node.length > longest.length) {
-        longest = node
-      }
-
-      for (const child of node) {
-        walk(child)
-      }
-      return
-    }
-
-    if (
-      typeof node === 'string' &&
-      (node.startsWith('[') || node.startsWith('{'))
-    ) {
-      try {
-        walk(JSON.parse(node))
-      } catch {
-        // ignore
-      }
-    }
-  }
-
-  walk(data)
-  return longest
 }
