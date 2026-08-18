@@ -4,13 +4,13 @@ This a small part of my pet project that i always wanted to create. A personal p
 
 # Stack
 
-React TS
-Zustand
-Tenstack Query
-Node.js
-Playwright (will switch to Puppeteer in future, need lightweight solution)
-Vite
-Tailwind CSS
+- React TS
+- Zustand
+- Tenstack Query
+- Node.js
+- Playwright (will switch to Puppeteer in future, need lightweight solution)
+- Vite
+- Tailwind CSS
 
 # What it do
 
