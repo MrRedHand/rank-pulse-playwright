@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   selectActiveTracking,
   useTrackingStore,
@@ -12,6 +12,7 @@ import { useStartParse } from '../../hooks/use-start-parse'
 import { useParseJob } from '../../hooks/use-parse-job'
 import { snapshotFromJob } from '../../lib/snapshots'
 import { getLocalDateString } from '../../lib/dates'
+import type { Keyword } from '../../types'
 
 export function ActiveGamePanel() {
   const activeTracking = useTrackingStore(selectActiveTracking)
@@ -24,14 +25,26 @@ export function ActiveGamePanel() {
     jobId: string
     gameId: string
   } | null>(null)
+  const [awaitingJob, setAwaitingJob] = useState(false)
   const persistedJobIdRef = useRef<string | null>(null)
+  const isParsingRef = useRef(false)
 
-  const startParse = useStartParse()
+  const {
+    mutate: startParseMutate,
+    isPending: isStartParsePending,
+    isError: isStartParseError,
+  } = useStartParse()
   const jobId =
     activeTracking && activeJob?.gameId === activeTracking.game.id
       ? activeJob.jobId
       : null
-  const { data: job } = useParseJob(jobId)
+  const { data: job, isError: isJobQueryError } = useParseJob(jobId)
+
+  if (awaitingJob && jobId && job?.id === jobId) {
+    setAwaitingJob(false)
+  } else if (awaitingJob && isJobQueryError) {
+    setAwaitingJob(false)
+  }
 
   useEffect(() => {
     if (!job || (job.status !== 'done' && job.status !== 'error')) {
@@ -43,18 +56,64 @@ export function ActiveGamePanel() {
     }
 
     persistedJobIdRef.current = job.id
-    addSnapshot(
-      snapshotFromJob(job, getLocalDateString()),
-      new Date().toISOString(),
-    )
+    const today = getLocalDateString()
+    const tracking = selectActiveTracking(useTrackingStore.getState())
+    const base = tracking?.history.find((snapshot) => snapshot.date === today)
+    addSnapshot(snapshotFromJob(job, today, base), new Date().toISOString())
   }, [job, addSnapshot])
+
+  const isParsing =
+    awaitingJob || isStartParsePending || job?.status === 'running'
+
+  useEffect(() => {
+    isParsingRef.current = isParsing
+  }, [isParsing])
+
+  const launchParse = useCallback(
+    (nextKeywords: Keyword[]) => {
+      const tracking = selectActiveTracking(useTrackingStore.getState())
+      if (!tracking || nextKeywords.length === 0 || isParsingRef.current) {
+        return
+      }
+
+      setAwaitingJob(true)
+      setActiveJob(null)
+      startParseMutate(
+        {
+          game: tracking.game,
+          country: tracking.country,
+          keywords: nextKeywords,
+        },
+        {
+          onSuccess: ({ jobId: nextJobId }) => {
+            setActiveJob({ jobId: nextJobId, gameId: tracking.game.id })
+          },
+          onError: () => {
+            setAwaitingJob(false)
+          },
+        },
+      )
+    },
+    [startParseMutate],
+  )
+
+  const handleRefreshKeyword = useCallback(
+    (keywordId: string) => {
+      const tracking = selectActiveTracking(useTrackingStore.getState())
+      const keyword = tracking?.keywords.find((item) => item.id === keywordId)
+      if (!keyword) {
+        return
+      }
+      launchParse([keyword])
+    },
+    [launchParse],
+  )
 
   if (!activeTracking) {
     return null
   }
 
-  const { game, country, keywords } = activeTracking
-  const isParsing = startParse.isPending || job?.status === 'running'
+  const { game, keywords } = activeTracking
 
   function openKeywordModal() {
     setKeywordDraft(keywords.map((keyword) => keyword.value).join('\n'))
@@ -72,18 +131,7 @@ export function ActiveGamePanel() {
   }
 
   function handleParse() {
-    if (keywords.length === 0 || isParsing) {
-      return
-    }
-
-    startParse.mutate(
-      { game, country, keywords },
-      {
-        onSuccess: ({ jobId: nextJobId }) => {
-          setActiveJob({ jobId: nextJobId, gameId: game.id })
-        },
-      },
-    )
+    launchParse(keywords)
   }
 
   return (
@@ -139,7 +187,7 @@ export function ActiveGamePanel() {
         </button>
       </div>
 
-      {startParse.isError && (
+      {isStartParseError && (
         <p className="text-sm text-danger">Failed to start parse.</p>
       )}
 
@@ -153,6 +201,8 @@ export function ActiveGamePanel() {
           history={activeTracking.history}
           lastParsedAt={activeTracking.lastParsedAt}
           job={job}
+          refreshDisabled={isParsing}
+          onRefreshKeyword={handleRefreshKeyword}
         />
       )}
 

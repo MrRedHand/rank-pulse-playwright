@@ -55,13 +55,15 @@ export async function runParseJob(
           input.country,
         )
         job.results[keyword.id] = { status: 'done', rank }
-      } catch {
+      } catch (error) {
+        console.error(`Rank parse failed for "${keyword.value}"`, error)
         job.results[keyword.id] = { status: 'error', rank: null }
       }
     }
 
     job.status = 'done'
-  } catch {
+  } catch (error) {
+    console.error('Parse job failed', error)
     job.status = 'error'
   }
 }

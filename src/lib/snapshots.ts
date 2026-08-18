@@ -15,10 +15,22 @@ export function upsertSnapshot(
   return next
 }
 
-export function snapshotFromJob(job: ParseJob, date: string): RankSnapshot {
-  const results: Record<string, number | null> = {}
+export function snapshotFromJob(
+  job: ParseJob,
+  date: string,
+  base?: RankSnapshot | null,
+): RankSnapshot {
+  const results: Record<string, number | null> = {
+    ...(base?.date === date ? base.results : {}),
+  }
+
   for (const [keywordId, result] of Object.entries(job.results)) {
+    if (result.status === 'pending' || result.status === 'parsing') {
+      continue
+    }
+
     results[keywordId] = result.status === 'done' ? result.rank : null
   }
+
   return { date, results }
 }

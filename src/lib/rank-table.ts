@@ -1,18 +1,19 @@
 import type { Keyword, ParseJob, RankSnapshot } from '../types'
 import { formatSnapshotDate, getLocalDateString } from './dates'
 
+export const REFRESH_COLUMN_ID = 'refresh'
+
 export type RankCellDisplay =
   | { type: 'value'; rank: number; delta: number | null }
   | { type: 'missing' }
   | { type: 'empty' }
   | { type: 'loading' }
   | { type: 'error' }
+  | { type: 'refresh' }
 
-export type RankTableColumn = {
-  id: string
-  label: string
-  date: string
-}
+export type RankTableColumn =
+  | { id: string; kind: 'date'; label: string; date: string }
+  | { id: typeof REFRESH_COLUMN_ID; kind: 'refresh'; label: string }
 
 export type RankTableRow = {
   keywordId: string
@@ -56,7 +57,11 @@ function buildTodayCell(
   }
 
   const result = job.results[keywordId]
-  if (!result || result.status === 'pending' || result.status === 'parsing') {
+  if (!result) {
+    return buildValueCell(historyRank, previousRank)
+  }
+
+  if (result.status === 'pending' || result.status === 'parsing') {
     return { type: 'loading' }
   }
 
@@ -84,10 +89,12 @@ export function buildRankTable(
   const columns: RankTableColumn[] = [
     ...pastDates.map((date) => ({
       id: date,
+      kind: 'date' as const,
       label: formatSnapshotDate(date),
       date,
     })),
-    { id: 'today', label: 'today', date: today },
+    { id: 'today', kind: 'date', label: 'today', date: today },
+    { id: REFRESH_COLUMN_ID, kind: 'refresh', label: '' },
   ]
 
   const rows: RankTableRow[] = keywords.map((keyword) => {
@@ -95,6 +102,11 @@ export function buildRankTable(
     let previousRank: number | null | undefined = undefined
 
     for (const column of columns) {
+      if (column.kind === 'refresh') {
+        cells[column.id] = { type: 'refresh' }
+        continue
+      }
+
       if (column.id === 'today') {
         const historyRank = snapshotByDate.get(today)?.results[keyword.id]
         const cell = buildTodayCell(keyword.id, historyRank, previousRank, job)

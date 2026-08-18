@@ -8,7 +8,7 @@ import {
   normalizePlayStoreLink,
 } from '../src/lib/play-store-link-validator.ts'
 import type { Country, Game, Keyword } from '../src/types.ts'
-import { GoogleDomRankParser } from './parser/google-dom-rank-parser.ts'
+import { GoogleRankParser } from './parser/google-rank-parser.ts'
 
 const PORT = 3001
 
@@ -67,15 +67,32 @@ function json(
 }
 
 async function main() {
-  const browser = await chromium.launch({ headless: true })
-  const appParser = new GooglePlayAppParser(browser)
-  const rankParser = new GoogleDomRankParser(browser)
+  let browser = await chromium.launch({ headless: true })
+  let appParser = new GooglePlayAppParser(browser)
+  let rankParser = new GoogleRankParser(browser)
+
+  async function ensureBrowser() {
+    if (browser.isConnected()) {
+      try {
+        const probe = await browser.newPage()
+        await probe.close()
+        return
+      } catch {
+        await browser.close().catch(() => undefined)
+      }
+    }
+
+    browser = await chromium.launch({ headless: true })
+    appParser = new GooglePlayAppParser(browser)
+    rankParser = new GoogleRankParser(browser)
+  }
 
   const server = createServer(async (request, response) => {
     const url = request.url ?? ''
 
     if (request.method === 'POST' && url === '/api/games/fetch') {
       try {
+        await ensureBrowser()
         const body = await readJsonBody(request)
         const link =
           typeof body === 'object' &&
@@ -103,6 +120,7 @@ async function main() {
 
     if (request.method === 'POST' && url === '/api/parse') {
       try {
+        await ensureBrowser()
         const body = await readJsonBody(request)
         const game =
           typeof body === 'object' && body !== null && 'game' in body
