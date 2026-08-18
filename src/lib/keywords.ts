@@ -22,3 +22,16 @@ export function createKeywordsFromText(text: string): Keyword[] {
     value,
   }))
 }
+
+export function mergeKeywordsFromText(
+  text: string,
+  existingKeywords: Keyword[],
+): Keyword[] {
+  const byValue = new Map(
+    existingKeywords.map((keyword) => [keyword.value, keyword]),
+  )
+
+  return parseKeywordLines(text).map(
+    (value) => byValue.get(value) ?? { id: crypto.randomUUID(), value },
+  )
+}

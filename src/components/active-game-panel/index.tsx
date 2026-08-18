@@ -6,7 +6,8 @@ import {
 import { CountryDropdown } from '../country-dropdown'
 import { GamesDropdown } from '../games-dropdown'
 import { KeywordsModal } from '../keywords-modal'
-import { createKeywordsFromText } from '../../lib/keywords'
+import { mergeKeywordsFromText } from '../../lib/keywords'
+import { RankTable } from '../rank-table'
 
 export function ActiveGamePanel() {
   const activeTracking = useTrackingStore(selectActiveTracking)
@@ -32,7 +33,7 @@ export function ActiveGamePanel() {
   }
 
   function handleSaveKeywords() {
-    setKeywords(createKeywordsFromText(keywordDraft))
+    setKeywords(mergeKeywordsFromText(keywordDraft, keywords))
     closeKeywordModal()
   }
 
@@ -78,6 +79,14 @@ export function ActiveGamePanel() {
         >
           + Add keywords
         </button>
+
+        <button
+          type="button"
+          disabled={keywords.length === 0}
+          className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
+        >
+          ▶ Parse
+        </button>
       </div>
 
       {keywords.length === 0 ? (
@@ -86,25 +95,17 @@ export function ActiveGamePanel() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-border bg-surface">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-bg/60">
-                <th className="px-4 py-3 text-left font-medium text-muted">
-                  Keyword
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {keywords.map((keyword) => (
-                <tr
-                  key={keyword.id}
-                  className="border-b border-border last:border-b-0"
-                >
-                  <td className="px-4 py-3 text-text-h">{keyword.value}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {keywords.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-surface/50 px-6 py-8 text-center text-muted">
+              <p>Add keywords to start tracking search rankings.</p>
+            </div>
+          ) : (
+            <RankTable
+              keywords={keywords}
+              history={activeTracking.history}
+              lastParsedAt={activeTracking.lastParsedAt}
+            />
+          )}
         </div>
       )}
 
