@@ -1,5 +1,5 @@
 import { useTrackingStore } from '../../store/tracking-store'
-import { Select } from '../select'
+import { Select } from '../shared/select'
 
 export function GamesDropdown() {
   const trackedGames = useTrackingStore((state) => state.trackedGames)

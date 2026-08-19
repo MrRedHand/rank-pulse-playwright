@@ -4,7 +4,7 @@ import {
   selectActiveTracking,
   useTrackingStore,
 } from '../../store/tracking-store'
-import { Select } from '../select'
+import { Select } from '../shared/select'
 
 export function CountryDropdown() {
   const activeTracking = useTrackingStore(selectActiveTracking)

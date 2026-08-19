@@ -7,9 +7,9 @@ import {
   PLAY_STORE_LINK_ERROR,
 } from '../../lib/play-store-link-validator'
 import type { Game } from '../../types'
-import { Modal } from '../modal'
-import { Button } from '../button'
-import { Input } from '../input'
+import { Modal } from '../shared/modal'
+import { Button } from '../shared/button'
+import { Input } from '../shared/input'
 import styles from './index.module.css'
 
 type AddGameModalProps = {

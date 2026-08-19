@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { PageHeading } from '../page-heading'
+import { PageHeading } from '../../page-heading'
 import styles from './index.module.css'
 
 type PageProps = {

@@ -23,8 +23,8 @@ import {
 } from '../../lib/rank-table'
 import type { Keyword, ParseJob, RankSnapshot } from '../../types'
 import { formatLastParsedAt } from '../../lib/dates'
-import { Button } from '../button'
-import { Input } from '../input'
+import { Button } from '../shared/button'
+import { Input } from '../shared/input'
 import styles from './index.module.css'
 
 const features = tableFeatures({

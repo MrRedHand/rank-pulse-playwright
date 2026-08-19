@@ -1,6 +1,6 @@
-import { Modal } from '../modal'
-import { Button } from '../button'
-import { Textarea } from '../input'
+import { Modal } from '../shared/modal'
+import { Button } from '../shared/button'
+import { Textarea } from '../shared/input'
 import styles from './index.module.css'
 
 type KeywordModalProps = {

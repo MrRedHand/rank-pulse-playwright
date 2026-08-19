@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { AddGameModal } from '../../components/add-game-modal'
 import { ActiveGamePanel } from '../../components/active-game-panel'
-import { Page } from '../../components/page'
-import { Button } from '../../components/button'
+import { Page } from '../../components/shared/page'
+import { Button } from '../../components/shared/button'
 import { useTrackingStore } from '../../store/tracking-store'
 import styles from './index.module.css'
 

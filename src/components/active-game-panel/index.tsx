@@ -8,7 +8,7 @@ import { GamesDropdown } from '../games-dropdown'
 import { KeywordsModal } from '../keywords-modal'
 import { mergeKeywordsFromText } from '../../lib/keywords'
 import { RankTable } from '../rank-table'
-import { Button } from '../button'
+import { Button } from '../shared/button'
 import { useParseOrchestration } from '../../hooks/use-parse-orchestration'
 import {
   lastParsedAtForCountry,
