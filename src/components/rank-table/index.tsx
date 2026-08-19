@@ -40,7 +40,7 @@ const features = tableFeatures({
 })
 
 const EMPTY_CELL: RankCellDisplay = { type: 'empty' }
-const MIN_DATE_COLUMNS = 40
+const MIN_DATE_COLUMNS = 10
 const columnHelper = createColumnHelper<typeof features, RankTableRow>()
 
 function sortRankCell(
