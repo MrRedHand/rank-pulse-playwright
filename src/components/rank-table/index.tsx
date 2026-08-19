@@ -8,6 +8,8 @@ import {
 } from '../../lib/rank-table'
 import type { Keyword, ParseJob, RankSnapshot } from '../../types'
 import { formatLastParsedAt } from '../../lib/dates'
+import { Button } from '../button'
+import styles from './index.module.css'
 
 type RankTableProps = {
   keywords: Keyword[]
@@ -26,7 +28,7 @@ function ArrowPathIcon() {
       viewBox="0 0 24 24"
       strokeWidth={1.5}
       stroke="currentColor"
-      className="h-4 w-4"
+      className={styles.icon}
       aria-hidden="true"
     >
       <path
@@ -50,47 +52,50 @@ function RankCell({
   onRefreshKeyword?: (keywordId: string) => void
 }) {
   if (cell.type === 'empty') {
-    return <span className="text-muted"> </span>
+    return <span className={styles.muted}> </span>
   }
 
   if (cell.type === 'missing') {
-    return <span className="text-muted">—</span>
+    return <span className={styles.muted}>—</span>
   }
 
   if (cell.type === 'loading') {
-    return (
-      <span
-        className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-muted border-t-accent"
-        aria-label="Parsing"
-      />
-    )
+    return <span className={styles.spinner} aria-label="Parsing" />
   }
 
   if (cell.type === 'error') {
-    return <span className="text-danger">!</span>
+    return <span className={styles.danger}>!</span>
   }
 
   if (cell.type === 'refresh') {
     return (
-      <button
-        type="button"
+      <Button
+        variant="ghost"
+        className={styles.refresh}
         onClick={() => onRefreshKeyword?.(keywordId)}
         disabled={refreshDisabled || !onRefreshKeyword}
-        className="rounded-md p-1.5 text-muted hover:bg-bg hover:text-text-h disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted"
         aria-label="Refresh keyword ranking"
         title="Refresh"
       >
         <ArrowPathIcon />
-      </button>
+      </Button>
     )
   }
 
-  const deltaLabel = formatRankDelta(cell.delta)
-
+  const deltaLabelObject = formatRankDelta(cell.delta)
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <span className={styles.rank}>
       <span>{cell.rank}</span>
-      {deltaLabel && <span className="text-xs text-muted">{deltaLabel}</span>}
+      {deltaLabelObject && (
+        <span
+          className={[
+            styles.delta,
+            deltaLabelObject.isDegrade ? styles.negative : styles.positive,
+          ].join(' ')}
+        >
+          {deltaLabelObject.value}
+        </span>
+      )}
     </span>
   )
 }
@@ -115,19 +120,14 @@ export const RankTable = memo(function RankTable({
   }
 
   return (
-    <div className="space-y-3">
-      <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-        <table className="w-full min-w-[480px] text-sm">
+    <div className={styles.wrap}>
+      <div className={styles.scroll}>
+        <table className={styles.table}>
           <thead>
-            <tr className="border-b border-border bg-bg/60">
-              <th className="px-4 py-3 text-left font-medium text-muted">
-                Keyword
-              </th>
+            <tr className={styles.headRow}>
+              <th className={styles.heading}>Keyword</th>
               {model.columns.map((column) => (
-                <th
-                  key={column.id}
-                  className="px-4 py-3 text-left font-medium text-muted"
-                >
+                <th key={column.id} className={styles.heading}>
                   {column.label}
                 </th>
               ))}
@@ -135,13 +135,10 @@ export const RankTable = memo(function RankTable({
           </thead>
           <tbody>
             {model.rows.map((row) => (
-              <tr
-                key={row.keywordId}
-                className="border-b border-border last:border-b-0"
-              >
-                <td className="px-4 py-3 text-text-h">{row.keyword}</td>
+              <tr key={row.keywordId} className={styles.row}>
+                <td className={styles.cell}>{row.keyword}</td>
                 {model.columns.map((column) => (
-                  <td key={column.id} className="px-4 py-3 text-text-h">
+                  <td key={column.id} className={styles.cell}>
                     <RankCell
                       cell={row.cells[column.id]}
                       keywordId={row.keywordId}
@@ -161,7 +158,7 @@ export const RankTable = memo(function RankTable({
       </div>
 
       {lastParsedAt && (
-        <p className="text-sm text-muted">
+        <p className={styles.footer}>
           Last run: {formatLastParsedAt(lastParsedAt)}
         </p>
       )}

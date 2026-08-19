@@ -161,14 +161,16 @@ export function buildRankTable(
   return { columns, rows }
 }
 
-export function formatRankDelta(delta: number | null): string | null {
+export function formatRankDelta(
+  delta: number | null,
+): { isDegrade: boolean; value: string } | null {
   if (delta === null || delta === 0) {
     return null
   }
 
   if (delta > 0) {
-    return `↓ ${delta}`
+    return { isDegrade: true, value: `↓ ${delta}` }
   }
 
-  return `↑ ${Math.abs(delta)}`
+  return { isDegrade: false, value: `↑ ${Math.abs(delta)}` }
 }

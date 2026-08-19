@@ -7,6 +7,10 @@ import {
   PLAY_STORE_LINK_ERROR,
 } from '../../lib/play-store-link-validator'
 import type { Game } from '../../types'
+import { Modal } from '../modal'
+import { Button } from '../button'
+import { Input } from '../input'
+import styles from './index.module.css'
 
 type AddGameModalProps = {
   isOpen: boolean
@@ -23,10 +27,6 @@ export function AddGameModal({ isOpen, onClose }: AddGameModalProps) {
   const activeGameId = useTrackingStore((state) => state.activeGameId)
 
   const { mutate, isPending, isError, reset } = useFetchGame()
-
-  if (!isOpen) {
-    return null
-  }
 
   function resetModalState() {
     setLinkDraft('')
@@ -84,87 +84,59 @@ export function AddGameModal({ isOpen, onClose }: AddGameModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="add-game-title"
-        className="w-full max-w-lg rounded-xl border border-border bg-surface p-6 shadow-xl"
-      >
-        <h2 id="add-game-title" className="text-lg font-semibold text-text-h">
-          Add game
-        </h2>
-        <p className="mt-1 text-sm text-muted">
-          Paste a direct Google Play link to fetch game details.
+    <Modal isOpen={isOpen} title="Add game" onClose={handleClose}>
+      <p className={styles.description}>
+        Paste a direct Google Play link to fetch game details.
+      </p>
+      <p className={styles.example}>
+        Example:
+        https://play.google.com/store/apps/details?id=com.king.candycrushsaga
+      </p>
+      <label className={styles.label} htmlFor="game-link">
+        Game link
+      </label>
+      <Input
+        id="game-link"
+        type="url"
+        value={linkDraft}
+        onValueChange={handleLinkChange}
+        placeholder="https://play.google.com/store/apps/details?id=package.name"
+        className={styles.field}
+        disabled={isPending}
+      />
+      {validationError && <p className={styles.error}>{validationError}</p>}
+      {isError && !validationError && (
+        <p className={styles.error}>
+          Failed to fetch game. Check the link and try again.
         </p>
-        <p className="text-xs text-muted-double">
-          Example:
-          https://play.google.com/store/apps/details?id=com.king.candycrushsaga
-        </p>
-        <label className="mt-4 block text-sm text-muted" htmlFor="game-link">
-          Game link
-        </label>
-        <input
-          id="game-link"
-          type="url"
-          value={linkDraft}
-          onChange={(event) => handleLinkChange(event.target.value)}
-          placeholder="https://play.google.com/store/apps/details?id=package.name"
-          className="mt-2 w-full rounded-lg border border-border bg-bg px-3 py-2 text-text-h outline-none focus-visible:ring-2 focus-visible:ring-accent"
-          disabled={isPending}
-        />
-        {validationError && (
-          <p className="mt-2 text-sm text-danger">{validationError}</p>
-        )}
-        {isError && !validationError && (
-          <p className="mt-2 text-sm text-danger">
-            Failed to fetch game. Check the link and try again.
-          </p>
-        )}
-        {parsedGame && (
-          <div className="mt-4 rounded-lg border border-border bg-bg p-3">
-            <p className="mb-2 text-xs text-muted">Game found</p>
-            <div className="flex items-center gap-3">
-              <img
-                key={`${parsedGame.id}`}
-                src={parsedGame.icon}
-                alt=""
-                className="h-12 w-12 shrink-0 rounded-lg object-cover"
-                width={48}
-                height={48}
-              />
-              <p className="min-w-0 flex-1 truncate font-medium text-text-h">
-                {parsedGame.name}
-              </p>
-              <button
-                type="button"
-                onClick={handleAddParsed}
-                className="shrink-0 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover"
-              >
-                {getPreviewActionLabel()}
-              </button>
-            </div>
+      )}
+      {parsedGame && (
+        <div className={styles.preview}>
+          <p className={styles.previewLabel}>Game found</p>
+          <div className={styles.previewRow}>
+            <img
+              key={`${parsedGame.id}`}
+              src={parsedGame.icon}
+              alt=""
+              className={styles.icon}
+              width={48}
+              height={48}
+            />
+            <p className={styles.name}>{parsedGame.name}</p>
+            <Button className={styles.addButton} onClick={handleAddParsed}>
+              {getPreviewActionLabel()}
+            </Button>
           </div>
-        )}
-        <div className="mt-6 flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={handleClose}
-            disabled={isPending}
-            className="rounded-lg px-4 py-2 text-sm text-muted hover:text-text-h disabled:opacity-60"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleFetch}
-            disabled={isPending}
-            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-60"
-          >
-            {isPending ? 'Fetching…' : parsedGame ? 'Fetch again' : 'Find game'}
-          </button>
         </div>
+      )}
+      <div className={styles.footer}>
+        <Button variant="ghost" onClick={handleClose} disabled={isPending}>
+          Cancel
+        </Button>
+        <Button onClick={handleFetch} disabled={isPending}>
+          {isPending ? 'Fetching…' : parsedGame ? 'Fetch again' : 'Find game'}
+        </Button>
       </div>
-    </div>
+    </Modal>
   )
 }

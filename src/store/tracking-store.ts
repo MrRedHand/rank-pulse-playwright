@@ -14,6 +14,7 @@ type TrackingStore = {
   trackedGames: Record<string, TrackingData>
   activeGameId: string | null
   addGame: (game: Game) => void
+  removeGame: (gameId: string) => void
   selectGame: (gameId: string) => void
   setCountry: (country: Country) => void
   setKeywords: (keywords: Keyword[]) => void
@@ -123,6 +124,23 @@ export const useTrackingStore = create<TrackingStore>()(
               [game.id]: createTracking(game, DEFAULT_COUNTRY),
             },
           }
+        }),
+
+      removeGame: (gameId) =>
+        set((state) => {
+          if (!state.trackedGames[gameId]) {
+            return state
+          }
+
+          const trackedGames = { ...state.trackedGames }
+          delete trackedGames[gameId]
+
+          if (state.activeGameId !== gameId) {
+            return { trackedGames }
+          }
+
+          const remainingGameId = Object.keys(trackedGames)[0] ?? null
+          return { trackedGames, activeGameId: remainingGameId }
         }),
 
       selectGame: (gameId) =>

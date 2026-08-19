@@ -1,0 +1,13 @@
+.shell {
+  display: flex;
+  height: 100svh;
+  overflow: hidden;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+}

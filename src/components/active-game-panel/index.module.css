@@ -1,0 +1,86 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.card {
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: var(--color-surface);
+  padding: 1.25rem;
+}
+
+.cardBody {
+  display: flex;
+  gap: 1rem;
+}
+
+.icon {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  border-radius: 0.75rem;
+  background: var(--color-bg);
+  object-fit: cover;
+}
+
+.details {
+  min-width: 0;
+}
+
+.name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text-h);
+}
+
+.description {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.link {
+  display: block;
+  margin-top: 0.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.link:hover {
+  color: var(--color-accent-hover);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.error {
+  font-size: 0.875rem;
+  color: var(--color-danger);
+}
+
+.empty {
+  border: 1px dashed var(--color-border);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--color-surface) 50%, transparent);
+  padding: 2rem 1.5rem;
+  text-align: center;
+  color: var(--color-muted);
+}

@@ -8,11 +8,13 @@ import { GamesDropdown } from '../games-dropdown'
 import { KeywordsModal } from '../keywords-modal'
 import { mergeKeywordsFromText } from '../../lib/keywords'
 import { RankTable } from '../rank-table'
+import { Button } from '../button'
 import { useParseOrchestration } from '../../hooks/use-parse-orchestration'
 import {
   lastParsedAtForCountry,
   snapshotsForCountry,
 } from '../../lib/snapshots'
+import styles from './index.module.css'
 
 export function ActiveGamePanel() {
   const activeTracking = useTrackingStore(selectActiveTracking)
@@ -61,32 +63,32 @@ export function ActiveGamePanel() {
   }
 
   return (
-    <section className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+    <section className={styles.panel}>
+      <div className={styles.filters}>
         <GamesDropdown />
         <CountryDropdown />
       </div>
 
-      <article className="rounded-xl border border-border bg-surface p-5">
-        <div className="flex gap-4">
+      <article className={styles.card}>
+        <div className={styles.cardBody}>
           <img
             key={`${game.id}-${game.icon}`}
             src={game.icon}
             alt=""
-            className="h-16 w-16 shrink-0 rounded-xl bg-bg object-cover"
+            className={styles.icon}
             width={64}
             height={64}
           />
-          <div className="min-w-0">
-            <h2 className="text-xl font-semibold text-text-h">{game.name}</h2>
+          <div className={styles.details}>
+            <h2 className={styles.name}>{game.name}</h2>
             {game.shortDescription && (
-              <p className="mt-1 text-sm text-muted">{game.shortDescription}</p>
+              <p className={styles.description}>{game.shortDescription}</p>
             )}
             <a
               href={game.link}
               target="_blank"
               rel="noreferrer"
-              className="mt-2 block truncate text-sm text-accent hover:text-accent-hover"
+              className={styles.link}
             >
               {game.link}
             </a>
@@ -94,37 +96,31 @@ export function ActiveGamePanel() {
         </div>
       </article>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={openKeywordModal}
-          className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-text-h hover:bg-bg"
-        >
+      <div className={styles.toolbar}>
+        <Button variant="outline" onClick={openKeywordModal}>
           + Add keywords
-        </button>
+        </Button>
 
-        <button
-          type="button"
+        <Button
           onClick={() => startParseForKeywords(keywords)}
           disabled={keywords.length === 0 || isParsing}
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
         >
           {isParsing ? 'Parsing…' : '▶ Parse'}
-        </button>
+        </Button>
       </div>
 
       {isStartParseError && (
-        <p className="text-sm text-danger">Failed to start parse.</p>
+        <p className={styles.error}>Failed to start parse.</p>
       )}
       {isAppendError && (
-        <p className="text-sm text-danger">Failed to add keywords to parse.</p>
+        <p className={styles.error}>Failed to add keywords to parse.</p>
       )}
       {isPollError && (
-        <p className="text-sm text-danger">Failed to load parse progress.</p>
+        <p className={styles.error}>Failed to load parse progress.</p>
       )}
 
       {keywords.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-surface/50 px-6 py-8 text-center text-muted">
+        <div className={styles.empty}>
           <p>Add keywords to start tracking search rankings.</p>
         </div>
       ) : (

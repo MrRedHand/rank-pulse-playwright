@@ -1,45 +1,15 @@
-import { useState } from 'react'
-import { AddGameModal } from './components/add-game-modal'
-import { ActiveGamePanel } from './components/active-game-panel'
-import { useTrackingStore } from './store/tracking-store'
+import { Outlet } from 'react-router-dom'
+import { Sidebar } from './components/sidebar'
+import styles from './App.module.css'
 
 function App() {
-  const [isAddGameOpen, setIsAddGameOpen] = useState(false)
-  const hasGames =
-    Object.keys(useTrackingStore((state) => state.trackedGames)).length > 0
-
   return (
-    <main className="mx-auto w-full max-w-[920px] px-6 py-12 pb-20">
-      <header className="mb-8">
-        <h1 className="text-[28px] font-semibold tracking-tight text-text-h">
-          RankPulse
-        </h1>
-        <p className="mt-1 text-muted">Track app search rankings</p>
-      </header>
-
-      <section className="mb-6" aria-label="Add game">
-        <button
-          type="button"
-          onClick={() => setIsAddGameOpen(true)}
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover"
-        >
-          + Add game
-        </button>
-      </section>
-
-      {hasGames ? (
-        <ActiveGamePanel />
-      ) : (
-        <section className="rounded-xl border border-border bg-surface px-6 py-8 text-muted">
-          <p>Add a game by pasting a direct Google Play link.</p>
-        </section>
-      )}
-
-      <AddGameModal
-        isOpen={isAddGameOpen}
-        onClose={() => setIsAddGameOpen(false)}
-      />
-    </main>
+    <div className={styles.shell}>
+      <Sidebar />
+      <main className={styles.main}>
+        <Outlet />
+      </main>
+    </div>
   )
 }
 
