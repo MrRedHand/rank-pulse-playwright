@@ -4,6 +4,10 @@
   gap: 0.75rem;
 }
 
+.search {
+  max-width: 16rem;
+}
+
 .scroll {
   overflow-x: auto;
   border: 1px solid var(--color-border);
@@ -12,35 +16,115 @@
 }
 
 .table {
-  width: 100%;
-  min-width: 480px;
-  border-collapse: collapse;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 0.875rem;
 }
 
 .headRow {
+  background: color-mix(in srgb, var(--color-bg) 60%, var(--color-surface) 40%);
+}
+
+.heading,
+.cell {
+  position: relative;
+  overflow: hidden;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-right: 1px solid var(--color-border);
   border-bottom: 1px solid var(--color-border);
-  background: color-mix(in srgb, var(--color-bg) 60%, transparent);
+}
+
+.compact {
+  padding: 0.5rem 0.25rem;
+  text-align: center;
+}
+
+.sticky {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+}
+
+.heading.sticky {
+  z-index: 3;
+  background: color-mix(in srgb, var(--color-bg) 70%, var(--color-surface) 30%);
+}
+
+.cell.sticky {
+  background: var(--color-surface);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.heading:last-child,
+.cell:last-child {
+  border-right: 0;
 }
 
 .heading {
-  padding: 0.75rem 1rem;
-  text-align: left;
   font-weight: 500;
   color: var(--color-muted);
 }
 
-.row {
-  border-bottom: 1px solid var(--color-border);
-}
-
-.row:last-child {
+.row:last-child .cell,
+.row:last-child .empty {
   border-bottom: 0;
 }
 
 .cell {
-  padding: 0.75rem 1rem;
   color: var(--color-text-h);
+}
+
+.empty {
+  padding: 2rem 1.5rem;
+  text-align: center;
+  color: var(--color-muted);
+}
+
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sortButton:hover {
+  color: var(--color-text-h);
+}
+
+.sortIndicator {
+  flex-shrink: 0;
+  min-width: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--color-accent);
+}
+
+.resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+}
+
+.resizer:hover,
+.resizerActive {
+  background: var(--color-accent);
 }
 
 .muted {
